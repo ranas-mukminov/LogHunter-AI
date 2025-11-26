@@ -1,0 +1,13 @@
+mitre_mapping:
+  techniques:
+    T1566: "Initial Access"
+    T1059: "Execution"
+    T1053: "Persistence"
+    T1548: "Privilege Escalation"
+    T1562: "Defense Evasion"
+    T1003: "Credential Access"
+    T1082: "Discovery"
+    T1021: "Lateral Movement"
+    T1560: "Collection"
+    T1041: "Exfiltration"
+    T1071: "Command and Control"

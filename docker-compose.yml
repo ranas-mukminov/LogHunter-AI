@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  loghunter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - ELASTIC_API_KEY=${ELASTIC_API_KEY}
+      - CH_USER=${CH_USER:-default}
+      - CH_PASSWORD=${CH_PASSWORD:-password}
+    depends_on:
+      - clickhouse
+      - redis
+      - kafka
+    volumes:
+      - ./config:/app/config
+      - ./models:/app/models
+      - ./src:/app/src
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: loghunter
+      CLICKHOUSE_USER: ${CH_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CH_PASSWORD:-password}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  clickhouse_data:
+  redis_data:
+  grafana_data:

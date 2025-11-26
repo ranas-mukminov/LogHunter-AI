@@ -1,0 +1,98 @@
+loghunter:
+  # Ingestion
+  ingestion:
+    sources:
+      kafka:
+        enabled: true
+        brokers: ["kafka:9092"]
+        topics: ["security-logs"]
+        consumer_group: "loghunter"
+      
+      elasticsearch:
+        enabled: true
+        url: "https://elastic:9200"
+        index_pattern: "logs-*"
+        api_key: "${ELASTIC_API_KEY}"
+    
+    batch_size: 1000
+    batch_timeout_ms: 5000
+  
+  # Preprocessing
+  preprocessing:
+    normalize_to: "ecs"
+    enrich:
+      geoip: true
+      threat_intel: true
+      asset_context: true
+  
+  # ML Configuration
+  ml:
+    # Baseline learning
+    baseline:
+      lookback_days: 30
+      min_events: 1000
+      retrain_interval_hours: 24
+    
+    # Detectors
+    detectors:
+      isolation_forest:
+        enabled: true
+        contamination: 0.01
+        n_estimators: 100
+      
+      autoencoder:
+        enabled: true
+        encoding_dim: 32
+        epochs: 100
+      
+      lstm:
+        enabled: true
+        sequence_length: 50
+        vocab_size: 10000
+      
+      beaconing:
+        enabled: true
+        min_connections: 20
+        regularity_threshold: 0.8
+    
+    # Ensemble
+    ensemble:
+      anomaly_threshold: -0.5
+      weights:
+        isolation_forest: 0.25
+        autoencoder: 0.25
+        lstm: 0.20
+        beaconing: 0.15
+        statistical: 0.15
+  
+  # Correlation
+  correlation:
+    time_window_hours: 24
+    min_chain_length: 3
+    risk_score_threshold: 0.5
+  
+  # Storage
+  storage:
+    clickhouse:
+      host: "clickhouse"
+      port: 9000
+      database: "loghunter"
+      user: "${CH_USER}"
+      password: "${CH_PASSWORD}"
+    
+    redis:
+      host: "redis"
+      port: 6379
+  
+  # Outputs
+  outputs:
+    slack:
+      enabled: true
+      webhook_url: "${SLACK_WEBHOOK}"
+      min_score: 0.8
+    
+    siem:
+      enabled: true
+      type: "splunk"
+      hec_url: "https://splunk:8088"
+      token: "${SPLUNK_HEC_TOKEN}"
